@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { tasks, projects } from "@/lib/db/schema";
 import Link from "next/link";
+import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +23,20 @@ export default async function TaskDetailPage({ params }: Props) {
     );
   }
 
-  // Find the task, project, check permission (project.teamId must match)
-  const task = await db.query.tasks.findFirst({
-    where: (t, { eq }) => eq(t.id, params.taskId),
-    with: { project: true },
-  });
+  const results = await db
+    .select({
+      task: tasks,
+      project: projects,
+    })
+    .from(tasks)
+    .leftJoin(projects, eq(tasks.projectId, projects.id))
+    .where(eq(tasks.id, params.taskId));
 
-  if (!task || !task.project || task.project.teamId !== session.teamId) {
+  const task = results[0]?.task;
+  const project = results[0]?.project;
+
+  // Permission: check project.teamId
+  if (!task || !project || project.teamId !== session.teamId) {
     return (
       <section className="p-8 text-center">
         <h2 className="text-xl font-bold mb-4">Task not found or access denied</h2>
@@ -47,7 +55,7 @@ export default async function TaskDetailPage({ params }: Props) {
         <br />
         <strong>Project:</strong>{" "}
         <Link href={`/dashboard/projects/${task.projectId}`} className="underline">
-          {task.project.name}
+          {project.name}
         </Link>
         <br />
         <strong>Assignee:</strong> {task.assigneeId || "-"}
