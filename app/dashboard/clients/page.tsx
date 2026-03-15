@@ -1,12 +1,17 @@
 import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { clients } from "@/lib/db/schema";
-import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import dynamic from "next/dynamic";
+
+// Dynamically import modal form as client component
+const ClientModalForm = dynamic(() => import("./ClientModalForm"), { ssr: false });
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const session = await getAuthSession();
   if (!session) {
     return (
@@ -25,6 +30,11 @@ export default async function ClientsPage() {
     .from(clients)
     .where(eq(clients.teamId, teamId))
     .orderBy(desc(clients.createdAt));
+
+  // Determine modal state by route param
+  const showModal = searchParams && (searchParams["modal"] === "new" || searchParams["modal"]?.startsWith("edit-"));
+  const editingId = searchParams && searchParams["modal"]?.startsWith("edit-") ? searchParams["modal"]!.replace("edit-", "") : null;
+  const editingClient = editingId ? rows.find((c) => c.id === editingId) : null;
 
   return (
     <section className="px-6 py-6 max-w-3xl mx-auto">
@@ -56,7 +66,10 @@ export default async function ClientsPage() {
                   <td className="px-3 py-2">{client.status}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
-                      href={`/dashboard/clients/${client.id}/edit`}
+                      href={{
+                        pathname: "/dashboard/clients",
+                        query: { modal: `edit-${client.id}` }
+                      }}
                       className="text-xs underline text-primary"
                     >
                       Edit
@@ -68,13 +81,21 @@ export default async function ClientsPage() {
           </table>
         </div>
       )}
-
+      {/* Show "Add Client" as modal trigger */}
       <Link
-        href="/dashboard/clients/new"
+        href={{
+          pathname: "/dashboard/clients",
+          query: { modal: "new" }
+        }}
         className="inline-flex items-center px-6 py-2 rounded-md bg-primary text-white mt-6 font-bold hover:bg-primary/80 transition"
       >
         + Add Client
       </Link>
+
+      {/* Modal rendered here conditionally */}
+      {showModal && (
+        <ClientModalForm client={editingClient || undefined} />
+      )}
     </section>
   );
 }
