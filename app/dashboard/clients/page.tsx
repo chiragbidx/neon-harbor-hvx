@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { clients } from "@/lib/db/schema";
 import Link from "next/link";
+import { desc, eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +23,8 @@ export default async function ClientsPage() {
   const rows = await db
     .select()
     .from(clients)
-    .where(clients.teamId.eq(teamId))
-    .orderBy(clients.createdAt.desc());
+    .where(eq(clients.teamId, teamId))
+    .orderBy(desc(clients.createdAt));
 
   return (
     <section className="px-6 py-6 max-w-3xl mx-auto">
