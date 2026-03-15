@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { invoices, invoiceLineItems, projects, clients } from "@/lib/db/schema";
 import Link from "next/link";
+import { eq, and } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,20 @@ export default async function InvoiceDetailPage({ params }: Props) {
   }
 
   const teamId = session.teamId;
-  const invoice = await db.query.invoices.findFirst({
-    where: (inv, { eq, and }) => and(eq(inv.id, params.invoiceId), eq(inv.teamId, teamId)),
-    with: {
-      project: true,
-      client: true,
-    },
-  });
+  const invoiceRes = await db
+    .select({
+      invoice: invoices,
+      project: projects,
+      client: clients,
+    })
+    .from(invoices)
+    .leftJoin(projects, eq(invoices.projectId, projects.id))
+    .leftJoin(clients, eq(invoices.clientId, clients.id))
+    .where(and(eq(invoices.id, params.invoiceId), eq(invoices.teamId, teamId)));
+
+  const invoice = invoiceRes[0]?.invoice;
+  const project = invoiceRes[0]?.project;
+  const client = invoiceRes[0]?.client;
 
   if (!invoice) {
     return (
@@ -43,9 +51,10 @@ export default async function InvoiceDetailPage({ params }: Props) {
   }
 
   // Find line items for this invoice
-  const lineItems = await db.query.invoiceLineItems.findMany({
-    where: (item, { eq }) => eq(item.invoiceId, invoice.id),
-  });
+  const lineItems = await db
+    .select()
+    .from(invoiceLineItems)
+    .where(eq(invoiceLineItems.invoiceId, invoice.id));
 
   return (
     <section className="px-6 py-6 max-w-3xl mx-auto">
@@ -56,18 +65,18 @@ export default async function InvoiceDetailPage({ params }: Props) {
         </div>
         <div className="mb-4">
           <strong>Client:</strong>{" "}
-          {invoice.client ? (
-            <Link className="underline" href={`/dashboard/clients/${invoice.clientId}`}>
-              {invoice.client.name}
+          {client ? (
+            <Link className="underline" href={`/dashboard/clients/${client.id}`}>
+              {client.name}
             </Link>
           ) : (
             "-"
           )}
           <br />
           <strong>Project:</strong>{" "}
-          {invoice.project ? (
-            <Link className="underline" href={`/dashboard/projects/${invoice.projectId}`}>
-              {invoice.project.name}
+          {project ? (
+            <Link className="underline" href={`/dashboard/projects/${project.id}`}>
+              {project.name}
             </Link>
           ) : (
             "-"
