@@ -1,7 +1,8 @@
 import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
-import { invoices, clients, projects } from "@/lib/db/schema";
+import { invoices, projects, clients } from "@/lib/db/schema";
 import Link from "next/link";
+import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,17 @@ export default async function InvoicesPage() {
   }
 
   const teamId = session.teamId;
-  const rows = await db.query.invoices.findMany({
-    where: (inv, { eq }) => eq(inv.teamId, teamId),
-    with: { project: true, client: true },
-    orderBy: (inv) => [inv.createdAt.desc()],
-  });
+  const rows = await db
+    .select({
+      invoice: invoices,
+      client: clients,
+      project: projects,
+    })
+    .from(invoices)
+    .leftJoin(projects, eq(invoices.projectId, projects.id))
+    .leftJoin(clients, eq(invoices.clientId, clients.id))
+    .where(eq(invoices.teamId, teamId))
+    .orderBy(desc(invoices.createdAt));
 
   return (
     <section className="px-6 py-6 max-w-4xl mx-auto">
@@ -46,18 +53,18 @@ export default async function InvoicesPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((inv) => (
-                <tr key={inv.id} className="hover:bg-accent transition">
+              {rows.map(({ invoice, client, project }) => (
+                <tr key={invoice.id} className="hover:bg-accent transition">
                   <td className="px-3 py-2">
-                    <Link href={`/dashboard/invoices/${inv.id}`} className="font-semibold underline">{inv.invoiceNumber}</Link>
+                    <Link href={`/dashboard/invoices/${invoice.id}`} className="font-semibold underline">{invoice.invoiceNumber}</Link>
                   </td>
-                  <td className="px-3 py-2">{inv.client?.name || "-"}</td>
-                  <td className="px-3 py-2">{inv.project?.name || "-"}</td>
-                  <td className="px-3 py-2">{inv.status}</td>
-                  <td className="px-3 py-2">{inv.total ? `$${inv.total}` : "-"}</td>
+                  <td className="px-3 py-2">{client?.name || "-"}</td>
+                  <td className="px-3 py-2">{project?.name || "-"}</td>
+                  <td className="px-3 py-2">{invoice.status}</td>
+                  <td className="px-3 py-2">{invoice.total ? `$${invoice.total}` : "-"}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
-                      href={`/dashboard/invoices/${inv.id}/edit`}
+                      href={`/dashboard/invoices/${invoice.id}/edit`}
                       className="text-xs underline text-primary"
                     >
                       Edit
