@@ -1,12 +1,16 @@
 import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { projects, clients } from "@/lib/db/schema";
-import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Dynamic import of modal form component as client
+const ProjectModalForm = dynamic(() => import("./ProjectModalForm"), { ssr: false });
 
 export const dynamic = "force-dynamic";
 
-export default async function ProjectsPage() {
+export default async function ProjectsPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const session = await getAuthSession();
   if (!session) {
     return (
@@ -29,6 +33,10 @@ export default async function ProjectsPage() {
     .leftJoin(clients, eq(projects.clientId, clients.id))
     .where(eq(projects.teamId, teamId))
     .orderBy(desc(projects.createdAt));
+
+  const showModal = searchParams && (searchParams["modal"] === "new" || searchParams["modal"]?.startsWith("edit-"));
+  const editingId = searchParams && searchParams["modal"]?.startsWith("edit-") ? searchParams["modal"]!.replace("edit-", "") : null;
+  const editingProject = editingId ? rows.find((p) => p.project.id === editingId)?.project : null;
 
   return (
     <section className="px-6 py-6 max-w-4xl mx-auto">
@@ -60,7 +68,10 @@ export default async function ProjectsPage() {
                   <td className="px-3 py-2">{project.budget ? `$${project.budget}` : '-'}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
-                      href={`/dashboard/projects/${project.id}/edit`}
+                      href={{
+                        pathname: "/dashboard/projects",
+                        query: { modal: `edit-${project.id}` }
+                      }}
                       className="text-xs underline text-primary"
                     >
                       Edit
@@ -72,13 +83,19 @@ export default async function ProjectsPage() {
           </table>
         </div>
       )}
-
       <Link
-        href="/dashboard/projects/new"
+        href={{
+          pathname: "/dashboard/projects",
+          query: { modal: "new" }
+        }}
         className="inline-flex items-center px-6 py-2 rounded-md bg-primary text-white mt-6 font-bold hover:bg-primary/80 transition"
       >
         + Add Project
       </Link>
+
+      {showModal && (
+        <ProjectModalForm project={editingProject || undefined} />
+      )}
     </section>
   );
 }
