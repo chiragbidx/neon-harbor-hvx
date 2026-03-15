@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { projects, clients, tasks, milestones } from "@/lib/db/schema";
 import Link from "next/link";
+import { eq, desc, asc, and } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,18 @@ export default async function ProjectDetailPage({ params }: Props) {
   }
 
   const teamId = session.teamId;
-  const project = await db.query.projects.findFirst({
-    where: (p, { eq, and }) => and(eq(p.id, params.projectId), eq(p.teamId, teamId)),
-    with: { client: true },
-  });
+  // Get project & client with join
+  const projRes = await db
+    .select({
+      project: projects,
+      client: clients,
+    })
+    .from(projects)
+    .leftJoin(clients, eq(projects.clientId, clients.id))
+    .where(and(eq(projects.id, params.projectId), eq(projects.teamId, teamId)));
+
+  const project = projRes[0]?.project;
+  const client = projRes[0]?.client;
 
   if (!project) {
     return (
@@ -40,15 +49,17 @@ export default async function ProjectDetailPage({ params }: Props) {
   }
 
   // Associated tasks and milestones
-  const taskRows = await db.query.tasks.findMany({
-    where: (t, { eq }) => eq(t.projectId, project.id),
-    orderBy: (t) => [t.createdAt.desc()],
-  });
+  const taskRows = await db
+    .select()
+    .from(tasks)
+    .where(eq(tasks.projectId, project.id))
+    .orderBy(desc(tasks.createdAt));
 
-  const milestoneRows = await db.query.milestones.findMany({
-    where: (m, { eq }) => eq(m.projectId, project.id),
-    orderBy: (m) => [m.createdAt.asc()],
-  });
+  const milestoneRows = await db
+    .select()
+    .from(milestones)
+    .where(eq(milestones.projectId, project.id))
+    .orderBy(asc(milestones.createdAt));
 
   return (
     <section className="px-6 py-6 max-w-3xl mx-auto">
@@ -57,9 +68,9 @@ export default async function ProjectDetailPage({ params }: Props) {
         <div className="text-sm text-muted-foreground mb-2">Status: {project.status}</div>
         <div className="mb-4">
           <strong>Client:</strong>{" "}
-          {project.client ? (
-            <Link className="underline" href={`/dashboard/clients/${project.clientId}`}>
-              {project.client.name}
+          {client ? (
+            <Link className="underline" href={`/dashboard/clients/${client.id}`}>
+              {client.name}
             </Link>
           ) : (
             "-"
