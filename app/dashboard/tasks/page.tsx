@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { tasks, projects } from "@/lib/db/schema";
 import Link from "next/link";
+import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,15 @@ export default async function TasksPage() {
 
   const teamId = session.teamId;
   // Get all tasks for all projects by this team
-  const rows = await db.query.tasks.findMany({
-    where: (t, { eq }) => eq(t.project.teamId, teamId),
-    with: { project: true },
-    orderBy: (t) => [t.createdAt.desc()],
-  });
+  const rows = await db
+    .select({
+      task: tasks,
+      project: projects,
+    })
+    .from(tasks)
+    .leftJoin(projects, eq(tasks.projectId, projects.id))
+    .where(eq(projects.teamId, teamId))
+    .orderBy(desc(tasks.createdAt));
 
   return (
     <section className="px-6 py-6 max-w-4xl mx-auto">
@@ -46,12 +51,12 @@ export default async function TasksPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((task) => (
+              {rows.map(({ task, project }) => (
                 <tr key={task.id} className="hover:bg-accent transition">
                   <td className="px-3 py-2 font-semibold">
                     <Link href={`/dashboard/tasks/${task.id}`} className="underline">{task.title}</Link>
                   </td>
-                  <td className="px-3 py-2">{task.project?.name || "-"}</td>
+                  <td className="px-3 py-2">{project?.name || "-"}</td>
                   <td className="px-3 py-2">{task.status}</td>
                   <td className="px-3 py-2">{task.assigneeId || "-"}</td>
                   <td className="px-3 py-2 text-right">
