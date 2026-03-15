@@ -33,10 +33,9 @@ interface FeatureProps {
   description: string;
 }
 
-// Landing page logo config.
-// Update these values to customize the navbar logo name and icon styling.
+// NAVBAR LOGO--CLIENTFLOW BRAND
 const LANDING_LOGO = {
-  name: "Panda",
+  name: "ClientFlow",
   iconClassName:
     "bg-gradient-to-tr border-secondary from-primary via-primary/70 to-primary rounded-lg w-9 h-9 mr-2 border text-white",
 };
@@ -62,16 +61,16 @@ const routeList: RouteProps[] = [
 
 const featureList: FeatureProps[] = [
   {
-    title: "Auth, Billing, Teams",
-    description: "Production-ready flows for sign-in, subscriptions, and organizations.",
+    title: "Client & Project CRM",
+    description: "All in one dashboard for clients, projects, invoicing and tasks.",
   },
   {
-    title: "UI + Design System",
-    description: "Shadcn-based components with consistent theming and dark mode support.",
+    title: "Team Collaboration",
+    description: "Invite teammates, control access, assign roles and keep everyone informed.",
   },
   {
-    title: "Deploy Fast",
-    description: "Sane defaults for Next.js, TypeScript, and Vercel-first deployment.",
+    title: "Easy Invoicing",
+    description: "Draft, send, and track invoice status right from your workspace.",
   },
 ];
 
@@ -160,7 +159,7 @@ export const Navbar = () => {
               <div className="grid w-[600px] grid-cols-2 gap-5 p-4">
                 <Image
                   src="/demo-img.jpg"
-                  alt="Panda preview"
+                  alt="ClientFlow dashboard preview"
                   className="h-full w-full rounded-md object-cover"
                   width={600}
                   height={600}
@@ -208,7 +207,7 @@ export const Navbar = () => {
         <Button asChild size="sm" variant="ghost" aria-label="View on GitHub">
           <Link
             aria-label="View on GitHub"
-            href="https://nextjs.org/docs"
+            href="https://github.com/"
             target="_blank"
           >
             <Github className="size-5" />
