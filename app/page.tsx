@@ -12,6 +12,11 @@ import { LayoutTeamSection } from "../components/home/LayoutTeamSection";
 import { LayoutTestimonialSection } from "../components/home/LayoutTestimonialSection";
 import { Navbar as LayoutNavbar } from "@/components/layout/navbar";
 
+export const metadata = {
+  title: "ClientFlow — Agency Client Management Portal",
+  description: "Manage clients, projects, and invoices in one place. Empower your agency with an all-in-one system for CRM, projects, invoicing, and team collaboration.",
+};
+
 export default function Home() {
   // Simple toggles so agents/users can hide sections without touching JSX.
   // Use ONLY_SECTIONS (comma list) to whitelist, or HIDE_SECTIONS to blacklist.
