@@ -1,12 +1,16 @@
 import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { tasks, projects } from "@/lib/db/schema";
-import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Dynamic import of task form modal
+const TaskModalForm = dynamic(() => import("./TaskModalForm"), { ssr: false });
 
 export const dynamic = "force-dynamic";
 
-export default async function TasksPage() {
+export default async function TasksPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const session = await getAuthSession();
   if (!session) {
     return (
@@ -30,6 +34,10 @@ export default async function TasksPage() {
     .leftJoin(projects, eq(tasks.projectId, projects.id))
     .where(eq(projects.teamId, teamId))
     .orderBy(desc(tasks.createdAt));
+
+  const showModal = searchParams && (searchParams["modal"] === "new" || searchParams["modal"]?.startsWith("edit-"));
+  const editingId = searchParams && searchParams["modal"]?.startsWith("edit-") ? searchParams["modal"]!.replace("edit-", "") : null;
+  const editingTask = editingId ? rows.find((t) => t.task.id === editingId)?.task : null;
 
   return (
     <section className="px-6 py-6 max-w-4xl mx-auto">
@@ -61,7 +69,10 @@ export default async function TasksPage() {
                   <td className="px-3 py-2">{task.assigneeId || "-"}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
-                      href={`/dashboard/tasks/${task.id}/edit`}
+                      href={{
+                        pathname: "/dashboard/tasks",
+                        query: { modal: `edit-${task.id}` }
+                      }}
                       className="text-xs underline text-primary"
                     >
                       Edit
@@ -73,13 +84,18 @@ export default async function TasksPage() {
           </table>
         </div>
       )}
-
       <Link
-        href="/dashboard/tasks/new"
+        href={{
+          pathname: "/dashboard/tasks",
+          query: { modal: "new" }
+        }}
         className="inline-flex items-center px-6 py-2 rounded-md bg-primary text-white mt-6 font-bold hover:bg-primary/80 transition"
       >
         + Add Task
       </Link>
+      {showModal && (
+        <TaskModalForm task={editingTask || undefined} />
+      )}
     </section>
   );
 }
