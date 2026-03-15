@@ -1,0 +1,3 @@
+-- Migration placeholder --  
+-- Run `npm run db:generate` then `npm run db:migrate` after updating schema.ts
+-- This file will be generated automatically based on the changes in the Drizzle schema.
