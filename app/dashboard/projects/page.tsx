@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { projects, clients } from "@/lib/db/schema";
 import Link from "next/link";
+import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,15 @@ export default async function ProjectsPage() {
   }
 
   const teamId = session.teamId;
-  const rows = await db.query.projects.findMany({
-    where: (p, { eq }) => eq(p.teamId, teamId),
-    with: { client: true },
-    orderBy: (p) => [p.createdAt.desc()],
-  });
+  const rows = await db
+    .select({
+      project: projects,
+      client: clients,
+    })
+    .from(projects)
+    .leftJoin(clients, eq(projects.clientId, clients.id))
+    .where(eq(projects.teamId, teamId))
+    .orderBy(desc(projects.createdAt));
 
   return (
     <section className="px-6 py-6 max-w-4xl mx-auto">
@@ -45,12 +50,12 @@ export default async function ProjectsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((project) => (
+              {rows.map(({ project, client }) => (
                 <tr key={project.id} className="hover:bg-accent transition">
                   <td className="px-3 py-2 font-semibold">
                     <Link href={`/dashboard/projects/${project.id}`} className="underline">{project.name}</Link>
                   </td>
-                  <td className="px-3 py-2">{project.client?.name || '-'}</td>
+                  <td className="px-3 py-2">{client?.name || '-'}</td>
                   <td className="px-3 py-2">{project.status}</td>
                   <td className="px-3 py-2">{project.budget ? `$${project.budget}` : '-'}</td>
                   <td className="px-3 py-2 text-right">
