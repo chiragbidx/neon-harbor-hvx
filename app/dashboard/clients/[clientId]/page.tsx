@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { clients, projects } from "@/lib/db/schema";
 import Link from "next/link";
+import { eq, desc, and } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,11 @@ export default async function ClientDetailPage({ params }: Props) {
   }
 
   const teamId = session.teamId;
-  const client = await db.query.clients.findFirst({
-    where: (c, { eq, and }) => and(eq(c.id, params.clientId), eq(c.teamId, teamId)),
-  });
+  const client = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, params.clientId), eq(clients.teamId, teamId)))
+    .then(res => res[0]);
 
   if (!client) {
     return (
@@ -39,10 +42,11 @@ export default async function ClientDetailPage({ params }: Props) {
   }
 
   // Projects for this client
-  const projectRows = await db.query.projects.findMany({
-    where: (p, { eq }) => eq(p.clientId, client.id),
-    orderBy: (p) => [p.createdAt.desc()],
-  });
+  const projectRows = await db
+    .select()
+    .from(projects)
+    .where(eq(projects.clientId, client.id))
+    .orderBy(desc(projects.createdAt));
 
   return (
     <section className="px-6 py-6 max-w-3xl mx-auto">
