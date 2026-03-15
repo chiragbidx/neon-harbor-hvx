@@ -1,12 +1,16 @@
 import { getAuthSession } from "@/lib/auth/session";
 import { db } from "@/lib/db/client";
 import { invoices, projects, clients } from "@/lib/db/schema";
-import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+
+// Dynamic import of invoice form modal
+const InvoiceModalForm = dynamic(() => import("./InvoiceModalForm"), { ssr: false });
 
 export const dynamic = "force-dynamic";
 
-export default async function InvoicesPage() {
+export default async function InvoicesPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const session = await getAuthSession();
   if (!session) {
     return (
@@ -31,6 +35,10 @@ export default async function InvoicesPage() {
     .leftJoin(clients, eq(invoices.clientId, clients.id))
     .where(eq(invoices.teamId, teamId))
     .orderBy(desc(invoices.createdAt));
+
+  const showModal = searchParams && (searchParams["modal"] === "new" || searchParams["modal"]?.startsWith("edit-"));
+  const editingId = searchParams && searchParams["modal"]?.startsWith("edit-") ? searchParams["modal"]!.replace("edit-", "") : null;
+  const editingInvoice = editingId ? rows.find((i) => i.invoice.id === editingId)?.invoice : null;
 
   return (
     <section className="px-6 py-6 max-w-4xl mx-auto">
@@ -64,7 +72,10 @@ export default async function InvoicesPage() {
                   <td className="px-3 py-2">{invoice.total ? `$${invoice.total}` : "-"}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
-                      href={`/dashboard/invoices/${invoice.id}/edit`}
+                      href={{
+                        pathname: "/dashboard/invoices",
+                        query: { modal: `edit-${invoice.id}` }
+                      }}
                       className="text-xs underline text-primary"
                     >
                       Edit
@@ -76,13 +87,18 @@ export default async function InvoicesPage() {
           </table>
         </div>
       )}
-
       <Link
-        href="/dashboard/invoices/new"
+        href={{
+          pathname: "/dashboard/invoices",
+          query: { modal: "new" }
+        }}
         className="inline-flex items-center px-6 py-2 rounded-md bg-primary text-white mt-6 font-bold hover:bg-primary/80 transition"
       >
         + Add Invoice
       </Link>
+      {showModal && (
+        <InvoiceModalForm invoice={editingInvoice || undefined} />
+      )}
     </section>
   );
 }
