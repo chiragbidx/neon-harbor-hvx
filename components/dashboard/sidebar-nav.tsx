@@ -5,11 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
-  Home,
-  Hammer,
-  Settings,
   Users,
+  FolderKanban,
   CreditCard,
+  ListTodo,
+  Home,
+  Settings,
 } from "lucide-react";
 import {
   Collapsible,
@@ -26,21 +27,19 @@ type NavItem = {
 
 const sections: { title: string; items: NavItem[] }[] = [
   {
-    title: "Platform",
+    title: "Workspace",
     items: [
-      { label: "Overview", href: "/dashboard", icon: Home },
-      {
-        label: "Feature",
-        href: "/dashboard/feature",
-        icon: Hammer,
-      },
+      { label: "Clients", href: "/dashboard/clients", icon: Users },
+      { label: "Projects", href: "/dashboard/projects", icon: FolderKanban },
+      { label: "Invoices", href: "/dashboard/invoices", icon: CreditCard },
+      { label: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
     ],
   },
   {
     title: "Account",
     items: [
+      { label: "Overview", href: "/dashboard", icon: Home },
       { label: "Team", href: "/dashboard/team", icon: Users },
-      { label: "Billing", href: "#", icon: CreditCard, disabled: true },
       { label: "Settings", href: "/dashboard/settings", icon: Settings },
     ],
   },
